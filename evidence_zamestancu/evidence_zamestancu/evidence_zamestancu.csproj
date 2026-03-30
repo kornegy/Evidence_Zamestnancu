@@ -17,4 +17,8 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.25"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="SeedData\" />
+    </ItemGroup>
+
 </Project>
