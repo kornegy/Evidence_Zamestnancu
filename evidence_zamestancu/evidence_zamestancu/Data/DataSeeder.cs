@@ -1,20 +1,19 @@
-﻿using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using evidence_zamestancu.Client.Models;
-using Microsoft.EntityFrameworkCore;
+using evidence_zamestancu.Client;
+using evidence_zamestancu.Services;
 
 namespace evidence_zamestancu.Data;
 
 public class DataSeeder
 {
-    public static void Seed(AppDbContext context)
+    public static async Task SeedAsync(AppDbContext context, IIpService ipService)
     {
         context.Database.EnsureCreated();
         
         if (!context.Positions.Any())
         {
             var positionsJson = File.ReadAllText("SeedData/postions.json");
-            
             var rootNode = JsonNode.Parse(positionsJson); //dynamicke drevo
 
             var positionArray = rootNode?["positions"]?.AsArray();
@@ -26,7 +25,7 @@ public class DataSeeder
                     string positionName = item.ToString();
                     context.Positions.Add(new Position{PositionName =  positionName});
                 }
-                context.SaveChanges();
+                await context.SaveChangesAsync();
             }
         }
 
@@ -47,12 +46,14 @@ public class DataSeeder
                     string surname =  node?["Surname"]?.ToString() ?? "Unknown";
                     string datebirth = node?["BirthDate"]?.ToString() ?? "";
                     string position =  node?["Position"]?.ToString() ?? "";
-                    string ipAddress =  node?["IpAddress"]?.ToString() ?? "0.0.0.0";
+                    string ipAddress =  node?["IpAddress"]?.ToString().Trim() ?? "0.0.0.0";
+                    
+                    DateTime.TryParse(datebirth, out DateTime parsedDate);
                     
                     var positionDB = dbPosition.FirstOrDefault(x => x.PositionName == position); //zjistime id pozice 
                     int positionID = positionDB != null ? positionDB.PositionID : 1;
                     
-                    DateTime.TryParse(datebirth, out DateTime parsedDate);
+                    string CountryCode = await ipService.GetCountryCodeAsync(ipAddress);
 
                     context.Employees.Add(new Employee
                     {
@@ -61,11 +62,11 @@ public class DataSeeder
                         BirthDate = parsedDate,
                         PositionID = positionID,
                         IPaddress = ipAddress,
-                        IPCountryCode = ""
+                        IPCountryCode = CountryCode
                     });
 
                 }
-                context.SaveChanges();
+                await context.SaveChangesAsync();
             }
         }
     }

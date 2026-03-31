@@ -1,5 +1,6 @@
 ﻿using evidence_zamestancu.Client.Models;
 using evidence_zamestancu.Data;
+using evidence_zamestancu.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,17 +11,48 @@ namespace evidence_zamestancu.Controllers;
 public class EmployeesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IIpService _ipService;
 
-    public EmployeesController(AppDbContext context)
+    public EmployeesController(AppDbContext context, IIpService ipService)
     {
         _context = context;
+        _ipService = ipService;
     }
-
-    [HttpGet]
+ 
+    [HttpGet] //CRUD (Read method)
     public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
     {
         return await _context.Employees
             .Include(e => e.Position)
             .ToListAsync(); // return result only when all the settings are done
     }
+
+    [HttpGet("position")] //getting Positions from DB
+    public async Task<ActionResult<IEnumerable<Position>>> GetPositions()
+    {
+        return await _context.Positions.ToListAsync();
+    }
+
+    [HttpPost] //CRUD (Create method)
+    public async Task<ActionResult<Employee>> AddEmployee(Employee employee)
+    {
+        bool exists = await _context.Employees.AnyAsync(e => //dublicate check
+                e.Name == employee.Name &&
+                e.Surname == employee.Surname &&
+                e.BirthDate == employee.BirthDate
+            );
+        
+        if(exists) return BadRequest("Employee already exists");
+
+        string ipToSearch = employee.IPaddress ?? "0.0.0.0";
+        string countryCode = await _ipService.GetCountryCodeAsync(ipToSearch);
+
+        employee.IPCountryCode = countryCode;
+        
+        _context.Employees.Add(employee);
+        await _context.SaveChangesAsync();
+        
+        return Ok(employee); //return status 200 and created employee back to client
+    }
+    
 }

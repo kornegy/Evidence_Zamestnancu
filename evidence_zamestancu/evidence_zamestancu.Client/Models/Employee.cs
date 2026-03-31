@@ -7,26 +7,23 @@ public class Employee
 {
     [Key]
     public int EmployeeID { get; set; }
-    
-    [Required(ErrorMessage = "You must enter a name.")]
+    [Required(ErrorMessage = "You must enter a name!")]
     public string Name {get; set;}
     
-    [Required(ErrorMessage = "You must enter a surname.")]
+    [Required(ErrorMessage = "You must enter a surname!")]
     public string Surname {get; set;}
     
-    [Required]
+    [Required(ErrorMessage = "You must enter a birthdate!")]
     public DateTime BirthDate {get; set;}
     
-    [Required]
-    public int PositionID {get; set;}
-    
-    [ForeignKey(nameof(PositionID))]
+    [ForeignKey("PositionID")]
     public Position? Position {get; set;}
     
-    [Required]
-    [RegularExpression(@"^(\d{1,3}\.){3}\d{1,3}$",ErrorMessage ="Invalid format of IP address")]
+    [Range(1, int.MaxValue, ErrorMessage = "Please, choose a position!")]
+    public int PositionID {get; set;}
+    
+    [Required(ErrorMessage = "You must enter an IPaddress!")]
     public string IPaddress {get; set;}
     
-    [Required]
     public string? IPCountryCode {get; set;}
 }

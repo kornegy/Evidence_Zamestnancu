@@ -1,6 +1,7 @@
 using evidence_zamestancu.Client.Pages;
 using evidence_zamestancu.Components;
 using evidence_zamestancu.Data;
+using evidence_zamestancu.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,8 +30,9 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<AppDbContext>();
+    var ipService = services.GetRequiredService<IIpService>();
     
-    DataSeeder.Seed(context);
+    await DataSeeder.SeedAsync(context, ipService);
 }
 
 // Configure the HTTP request pipeline.

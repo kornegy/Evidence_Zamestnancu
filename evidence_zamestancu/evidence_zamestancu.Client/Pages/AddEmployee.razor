@@ -1,0 +1,96 @@
+﻿@page "/add-employee"
+@using evidence_zamestancu.Client.Models
+@inject HttpClient http
+@inject NavigationManager NavigationManager
+
+<h2>Add new Employee</h2>
+<hr/>
+
+@if (!string.IsNullOrEmpty(errMessage))
+{
+    <div class="alert alert-danger">@errMessage</div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="@newEmployee" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator/>
+            
+            <div class="mb-3">
+                <label class="form-label">Name: </label>
+                <InputText @bind-Value="newEmployee.Name" class="form-control"/>
+                <ValidationMessage For="@(() => newEmployee.Name)" class="text-danger"/>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Surname: </label>
+                <InputText @bind-Value="newEmployee.Surname" class="form-control"/>
+                <ValidationMessage For="@(() => newEmployee.Surname)" class="text-danger"/>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">BirthDate: </label>
+                <InputDate @bind-Value="newEmployee.BirthDate" class="form-control"/>
+                <ValidationMessage For="@(() => newEmployee.BirthDate)" class="text-danger"/>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Position</label>
+                <select class="form-control" @bind="newEmployee.PositionID">
+                    <option value="0">Choose position</option>
+                    @foreach (var pos in position)
+                    {
+                        <option value="@pos.PositionID">@pos.PositionName</option>
+                    }
+                </select>
+                <ValidationMessage For="@(() => newEmployee.PositionID)" class="text-danger"></ValidationMessage>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">IPAddress: </label>
+                <InputText @bind-Value="newEmployee.IPaddress" class="form-control"/>
+                <ValidationMessage For="@(() => newEmployee.IPaddress)" class="text-danger"/>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+            
+        </EditForm>
+    </div>
+</div>
+
+@code {
+
+    private Employee newEmployee = new Employee { BirthDate = DateTime.Today };
+
+    private List<Position> position = new();
+
+    private string errMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        position = await http.GetFromJsonAsync<List<Position>>("https://localhost:7248/api/Employees/position") ?? new();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        errMessage = "";
+
+        var response = await http.PostAsJsonAsync("api/Employees", newEmployee);
+
+        if (response.IsSuccessStatusCode)
+        {
+            NavigationManager.NavigateTo("/employees");
+        }
+        else
+        {
+            errMessage = await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/employees");
+    }
+
+}
