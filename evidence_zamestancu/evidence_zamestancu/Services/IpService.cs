@@ -19,7 +19,7 @@ public class IpService : IIpService
 
     public async Task<string> GetCountryCodeAsync(string ipAddress)
     {
-        if (string.IsNullOrWhiteSpace(ipAddress)) 
+        if (string.IsNullOrWhiteSpace(ipAddress))
             return "Bad IP";
 
         try

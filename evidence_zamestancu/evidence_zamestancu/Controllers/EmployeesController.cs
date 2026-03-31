@@ -19,7 +19,7 @@ public class EmployeesController : ControllerBase
         _ipService = ipService;
     }
  
-    [HttpGet] //CRUD (Read method)
+    [HttpGet] //read employye 
     public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
     {
         return await _context.Employees
@@ -33,7 +33,7 @@ public class EmployeesController : ControllerBase
         return await _context.Positions.ToListAsync();
     }
 
-    [HttpPost] //CRUD (Create method)
+    [HttpPost] //create employee
     public async Task<ActionResult<Employee>> AddEmployee(Employee employee)
     {
         bool exists = await _context.Employees.AnyAsync(e => //dublicate check
@@ -53,6 +53,22 @@ public class EmployeesController : ControllerBase
         await _context.SaveChangesAsync();
         
         return Ok(employee); //return status 200 and created employee back to client
+    }
+
+    [HttpDelete("{id}")] //delete employee from db
+    public async Task<ActionResult<Employee>> DeleteEmployee(int id)
+    {
+        var employees = await _context.Employees.FindAsync(id);
+
+        if (employees == null)
+        {
+            return NotFound();
+        }
+
+        _context.Employees.Remove(employees);
+        await _context.SaveChangesAsync();
+
+        return Ok(employees);
     }
     
 }

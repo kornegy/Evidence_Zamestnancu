@@ -1,6 +1,7 @@
 ﻿@page "/employees"
 @using evidence_zamestancu.Client.Models
 @inject HttpClient Http
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Employees</PageTitle>
 
@@ -42,13 +43,36 @@ else
                      <td>@(emp.Position?.PositionName ?? "No position")</td>
                      <td>@emp.IPaddress</td>
                      <td>@emp.IPCountryCode</td>
+                     <td>
+                         <button class="btn btn-danger btn-sm my-1" @onclick="() => DeleteEmployee(emp.EmployeeID)">Delete</button>
+                     </td>
                  </tr>
-             }
+             }  
         </tbody>
     </table>
 }
 
+@code{
 
+    private async Task DeleteEmployee(int id)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this employee?");
+
+        if (confirmed)
+        {
+            var response = await Http.DeleteAsync("https://localhost:7248/api/Employees/" + id);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                employees.RemoveAll(e => e.EmployeeID == id);
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "Error while deleting employee");
+            }
+        }
+    }
+}
 
 @code{
     private List<Employee>? employees;
