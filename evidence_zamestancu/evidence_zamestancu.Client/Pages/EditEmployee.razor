@@ -1,0 +1,117 @@
+﻿@page "/edit-employee/{id:int}"
+@inject HttpClient http
+@using evidence_zamestancu.Client.Models
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit employee</PageTitle>
+
+<h1>Edit employee's data</h1>
+
+@if (employee == null)
+{
+    <p><em>Loading data on server...</em></p>
+}
+else
+{
+    <EditForm Model="employee" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        
+        @if (!string.IsNullOrEmpty(errMessage))
+        {
+            <div class="alert alert-danger">
+                <strong>Error:</strong> @errMessage
+            </div>
+        }
+        
+        <div class="mb-3">
+            <label class="form-label">Name: </label>
+            <InputText @bind-Value="employee.Name" class="form-control"/>
+            <ValidationMessage For="@(() => employee.Name)" class="text-danger"/>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Surname: </label>
+            <InputText @bind-Value="employee.Surname" class="form-control"/>
+            <ValidationMessage For="@(() => employee.Surname)" class="form-danger"/>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">DateBirth: </label>
+            <InputDate @bind-Value="employee.BirthDate" class="form-control"/>
+            <ValidationMessage For="@(() => employee.BirthDate)" class="text-danger"/>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Pracovná pozícia:</label>
+            <InputSelect @bind-Value="employee.PositionID" class="form-select">
+                <option value="0">-- Vyberte pozíciu --</option>
+                @if (positions != null)
+                {
+                    @foreach (var pos in positions)
+                    {
+                        <option value="@pos.PositionID">@pos.PositionName</option>
+                    }
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => employee.PositionID)" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">IPAddress: </label>
+            <InputText @bind-Value="employee.IPaddress" class="form-control"/>
+            <ValidationMessage For="@(() => employee.IPaddress)" class="text-danger"/>
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-success me-2">Save changes</button>
+            <a class="btn btn-secondary" href="/employees">Cancel and back</a>
+        </div>
+    </EditForm>
+}
+
+@code{
+
+    [Parameter] 
+    public int Id { get; set; }
+
+    private Employee? employee;
+    private List<Position>? positions;
+    private string? errMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            employee = await http.GetFromJsonAsync<Employee>($"https://localhost:7248/api/Employees/{Id}");
+            
+            positions = await http.GetFromJsonAsync<List<Position>>("https://localhost:7248/api/Employees/position");
+        }
+        catch(Exception ex)
+        {
+            errMessage = "Failed to load data" + ex.Message;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        Console.WriteLine("Ура! Кнопка нажата, метод запустился!");
+        try
+        {
+            var response = await http.PutAsJsonAsync($"https://localhost:7248/api/Employees/{Id}", employee);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo("/employees");
+            }
+            else
+            {
+                errMessage = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch(Exception ex)
+        {
+            errMessage = "Failed to load data" + ex.Message;
+        }
+    }
+
+}

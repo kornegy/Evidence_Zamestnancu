@@ -46,6 +46,9 @@ else
                      <td>
                          <button class="btn btn-danger btn-sm my-1" @onclick="() => DeleteEmployee(emp.EmployeeID)">Delete</button>
                      </td>
+                     <td>
+                         <a class="btn btn-warning btn-sm me-2" href="/edit-employee/@emp.EmployeeID">Edit</a>
+                     </td>
                  </tr>
              }  
         </tbody>
