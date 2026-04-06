@@ -94,7 +94,6 @@ else
 
     private async Task HandleValidSubmit()
     {
-        Console.WriteLine("Ура! Кнопка нажата, метод запустился!");
         try
         {
             var response = await http.PutAsJsonAsync($"https://localhost:7248/api/Employees/{Id}", employee);

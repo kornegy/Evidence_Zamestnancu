@@ -4,7 +4,16 @@ using evidence_zamestancu.Data;
 using evidence_zamestancu.Services;
 using Microsoft.EntityFrameworkCore;
 
+using Serilog;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, configuration) => 
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .WriteTo.Console()
+        .WriteTo.File("Logs/app-log.txt", rollingInterval: RollingInterval.Day)
+    );
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 

@@ -3,6 +3,8 @@ using evidence_zamestancu.Data;
 using evidence_zamestancu.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
 
 namespace evidence_zamestancu.Controllers;
 
@@ -12,22 +14,24 @@ public class EmployeesController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IIpService _ipService;
+    private readonly ILogger<EmployeesController> _logger;
 
-    public EmployeesController(AppDbContext context, IIpService ipService)
+    public EmployeesController(AppDbContext context, IIpService ipService, ILogger<EmployeesController> logger)
     {
         _context = context;
         _ipService = ipService;
+        _logger = logger;
     }
  
-    [HttpGet] //read employye 
+    [HttpGet] //zobrazeni zamestnanca
     public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
     {
         return await _context.Employees
             .Include(e => e.Position)
-            .ToListAsync(); // return result only when all the settings are done
+            .ToListAsync();
     }
 
-    [HttpGet("{id}")] //search for 1 employee in db
+    [HttpGet("{id}")] //hledani jednoho zamestanca z db
     public async Task<ActionResult<Employee>> GetOneEmployee(int id)
     {
         var employee = await _context.Employees.FindAsync(id);
@@ -39,35 +43,46 @@ public class EmployeesController : ControllerBase
         return employee;
     }
 
-    [HttpGet("position")] //getting Positions from DB
+    [HttpGet("position")]
     public async Task<ActionResult<IEnumerable<Position>>> GetPositions()
     {
         return await _context.Positions.ToListAsync();
     }
 
-    [HttpPost] //create employee
+    [HttpPost] //vytvoreni zamestancaa
     public async Task<ActionResult<Employee>> AddEmployee(Employee employee)
     {
-        bool exists = await _context.Employees.AnyAsync(e => //dublicate check
-                e.Name == employee.Name &&
-                e.Surname == employee.Surname &&
-                e.BirthDate == employee.BirthDate
-            );
-        
+        bool exists = await _context.Employees.AnyAsync(e => //overeni duplikatu
+            e.Name == employee.Name &&
+            e.Surname == employee.Surname &&
+            e.BirthDate == employee.BirthDate
+        );
+            
         if(exists) return BadRequest("Employee already exists");
-
-        string ipToSearch = employee.IPaddress ?? "0.0.0.0";
-        string countryCode = await _ipService.GetCountryCodeAsync(ipToSearch);
-
-        employee.IPCountryCode = countryCode;
         
-        _context.Employees.Add(employee);
-        await _context.SaveChangesAsync();
-        
-        return Ok(employee); //return status 200 and created employee back to client
+        try
+        {
+            string ipToSearch = employee.IPaddress ?? "0.0.0.0";
+            string countryCode = await _ipService.GetCountryCodeAsync(ipToSearch);
+
+            employee.IPCountryCode = countryCode;
+
+            _context.Employees.Add(employee);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Employee with ID {employee.EmployeeID} successfully created");
+            
+            return Ok(employee); //vraci statuscode 200 a zamestnanca
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error while adding employee with ID {employee.EmployeeID}");
+            
+            return StatusCode(500, "Internal server error");
+        }
     }
 
-    [HttpDelete("{id}")] //delete employee from db
+    [HttpDelete("{id}")] //vymazani zamestanca
     public async Task<ActionResult<Employee>> DeleteEmployee(int id)
     {
         var employees = await _context.Employees.FindAsync(id);
@@ -77,13 +92,22 @@ public class EmployeesController : ControllerBase
             return NotFound();
         }
 
-        _context.Employees.Remove(employees);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.Employees.Remove(employees);
+            await _context.SaveChangesAsync();
 
-        return Ok(employees);
+            _logger.LogInformation($"Employee with ID {employees.EmployeeID} successfully deleted");
+            return Ok(employees);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error while deleting Employee with ID {employees.EmployeeID}");
+            return StatusCode(500, "Internal server error");
+        }
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id}")] //aktualizace data pro zamestanca
     public async Task<ActionResult<Employee>> UpdateEmployee(Employee employee, int id)
     {
         if (id != employee.EmployeeID)
@@ -92,35 +116,46 @@ public class EmployeesController : ControllerBase
         }
 
         bool exists = await _context.Employees.AnyAsync(e =>
-        
+
             e.Name == employee.Name &&
             e.Surname == employee.Surname &&
             e.BirthDate == employee.BirthDate &&
             e.EmployeeID != id
         );
-        
-        if(exists) return BadRequest("Employee with this Name and DateBirth already exists");
-        
-        string  ipToSearch = employee.IPaddress ?? "0.0.0.0";
-        employee.IPCountryCode = await _ipService.GetCountryCodeAsync(ipToSearch);
-        
-        _context.Entry(employee).State =  EntityState.Modified;
 
+        if (exists) return BadRequest("Employee with this Name and DateBirth already exists");
+        
         try
         {
+            string ipToSearch = employee.IPaddress ?? "0.0.0.0";
+            employee.IPCountryCode = await _ipService.GetCountryCodeAsync(ipToSearch);
+
+            _context.Entry(employee).State = EntityState.Modified;
+
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Employee with ID {ID} successfully updated", employee.EmployeeID);
         }
         catch (DbUpdateConcurrencyException ex)
         {
             if (!_context.Employees.Any(e => e.EmployeeID == id))
+            {
+                _logger.LogWarning("Employee with ID {ID} not found", employee.EmployeeID);
                 return NotFound();
+            }
             else
+            {
+                _logger.LogError("Concurrency while updating Employee with ID {ID}", employee.EmployeeID);
                 throw;
+            }
         }
-        
-        return NoContent(); //status code 204
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Error while updating Employee with ID {ID} and Name {NAME}", employee.EmployeeID, employee.Name);
+            return StatusCode(500, "Internal server error");
+        }
+        return NoContent();
     }
-    
 }
 
 

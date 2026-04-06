@@ -5,9 +5,17 @@
 
 <PageTitle>Employees</PageTitle>
 
-<h1>List of employees</h1>
 
-<p>This page displays all employees from our database.</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="mb-0">List of employees</h1>
+        <p class="text-muted mt-1 mb-0">This page displays all employees from our database.</p>
+    </div>
+    <a href="/add-employee" class="btn btn-primary shadow-sm">
+        + Add
+    </a>
+</div>
+
 
 @if (employees == null)
 {
@@ -21,38 +29,92 @@ else if (employees.Count == 0)
 }
 else
 {
-    <table class="table table-striped table-bordered table-hover">
-        <thead class="table-dark">
-        <tr>
-            <th>Name</th>
-            <th>Surname</th>
-            <th>BirthDate</th>
-            <th>Position</th>
-            <th>IP Address</th>
-            <th>IP Country code</th>
-        </tr>
-        </thead>
-        
-        <tbody>
-             @foreach (var emp in employees)
-             {
-                 <tr>
-                     <td>@emp.Name</td>
-                     <td>@emp.Surname</td>
-                     <td>@emp.BirthDate</td>
-                     <td>@(emp.Position?.PositionName ?? "No position")</td>
-                     <td>@emp.IPaddress</td>
-                     <td>@emp.IPCountryCode</td>
-                     <td>
-                         <button class="btn btn-danger btn-sm my-1" @onclick="() => DeleteEmployee(emp.EmployeeID)">Delete</button>
-                     </td>
-                     <td>
-                         <a class="btn btn-warning btn-sm me-2" href="/edit-employee/@emp.EmployeeID">Edit</a>
-                     </td>
-                 </tr>
-             }  
-        </tbody>
-    </table>
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0"> <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    
+                    <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Surname</th>
+                        <th>BirthDate</th>
+                        <th>Position</th>
+                        <th>IP Address</th>
+                        <th>IP Country code</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var emp in employees)
+                    {
+                        <tr class="align-middle">
+                            <td>
+                                <span class="text-primary text-decoration-underline" style="cursor: pointer;" @onclick="() => ShowModal(emp)">@emp.Name</span>
+                            </td>
+                            <td>
+                                <span class="text-primary text-decoration-underline" style="cursor: pointer;" @onclick="() => ShowModal(emp)">@emp.Surname</span>
+                            </td>
+                            <td>@emp.BirthDate.ToShortDateString()</td>
+                            <td>@emp.Position?.PositionName</td>
+                            <td>@emp.IPaddress</td>
+                            <td>@emp.IPCountryCode</td>
+                            <td class="text-end">
+                                 <a href="/edit-employee/@emp.EmployeeID" class="btn btn-warning btn-sm me-2">Edit</a>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteEmployee(emp.EmployeeID)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+@if (isModalVisible && selectedEmployee != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Detaily zamestnanca</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <p><strong>Name and Surname:</strong> @selectedEmployee.Name @selectedEmployee.Surname</p>
+                    <p><strong>Date birth:</strong> @selectedEmployee.BirthDate.ToShortDateString()</p>
+                    <p><strong>Position:</strong> @selectedEmployee.Position?.PositionName</p>
+                    <p><strong>IP Address:</strong> @selectedEmployee.IPaddress</p>
+                    <p><strong>Country code:</strong> @selectedEmployee.IPCountryCode</p>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+}
+
+@code{
+
+    private bool isModalVisible = false;
+    private Employee selectedEmployee = null;
+    
+    private void ShowModal(Employee emp)
+    {
+        selectedEmployee = emp;
+        isModalVisible  = true;
+    }
+
+    private void CloseModal()
+    {
+        isModalVisible = false;
+        selectedEmployee = null;
+    }
+
 }
 
 @code{
@@ -84,5 +146,4 @@ else
     {
         employees = await Http.GetFromJsonAsync<List<Employee>>("https://localhost:7248/api/Employees");
     }
-
 }
