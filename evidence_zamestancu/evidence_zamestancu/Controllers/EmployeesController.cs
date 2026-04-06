@@ -1,4 +1,5 @@
 ﻿using evidence_zamestancu.Client.Models;
+using evidence_zamestancu.Client.Models.DTO;
 using evidence_zamestancu.Data;
 using evidence_zamestancu.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -155,6 +156,61 @@ public class EmployeesController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
         return NoContent();
+    }
+
+    [HttpPost("import")]
+    public async Task<ActionResult> ImportEmployees([FromBody]List<EmployeeDTO> importedEmployee)
+    {
+        if(importedEmployee == null || !importedEmployee.Any())
+            return BadRequest("File has wrong format or is empty!");
+
+        foreach (var item in importedEmployee)
+        {
+            try
+            {
+                bool exists = await _context.Employees.AnyAsync(e =>
+                    e.Name == item.Name &&
+                    e.Surname == item.Surname &&
+                    e.BirthDate == item.BirthDate);
+
+                if (exists) continue;
+
+                int? positionId = null;
+                if (!string.IsNullOrWhiteSpace(item.Position))
+                {
+                    var pos = await _context.Positions
+                        .FirstOrDefaultAsync(p => p.PositionName == item.Position);
+
+                    if (pos != null)
+                    {
+                        positionId = pos.PositionID;
+                    }
+                }
+
+                string ipToSearch = item.IpAddress ?? "0.0.0.0";
+                string countryCode = await _ipService.GetCountryCodeAsync(ipToSearch);
+
+                var newEmployee = new Employee
+                {
+                    Name = item.Name,
+                    Surname = item.Surname,
+                    BirthDate = item.BirthDate,
+                    PositionID = positionId,
+                    IPaddress = item.IpAddress,
+                    IPCountryCode = countryCode
+                };
+
+                _context.Employees.Add(newEmployee);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while importing Employees");
+            }
+        }
+        await _context.SaveChangesAsync();
+        
+        _logger.LogInformation("Employees imported successfully");
+        return Ok();
     }
 }
 

@@ -20,7 +20,7 @@ public class Employee
     public Position? Position {get; set;}
     
     [Range(1, int.MaxValue, ErrorMessage = "Please, choose a position!")]
-    public int PositionID {get; set;}
+    public int? PositionID {get; set;}
     
     [Required(ErrorMessage = "You must enter an IPaddress!")]
     public string IPaddress {get; set;}

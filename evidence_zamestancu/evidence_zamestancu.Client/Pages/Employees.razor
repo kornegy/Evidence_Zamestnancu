@@ -1,5 +1,7 @@
 ﻿@page "/employees"
+@using System.Text.Json
 @using evidence_zamestancu.Client.Models
+@using evidence_zamestancu.Client.Models.DTO
 @inject HttpClient Http
 @inject IJSRuntime JsRuntime
 
@@ -29,6 +31,34 @@ else if (employees.Count == 0)
 }
 else
 {
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body">
+            <h5 class="card-title">Import data from JSON</h5>
+            <div class="row align-items-start mt-3">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Positions</label>
+                    <div>
+                        <label for="positions-upload" class="btn btn-outline-primary px-4">Choose file</label>
+                        <InputFile id="positions-upload" OnChange="UploadPositions" class="form-control" accept=".json" style="display: none"/>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Employees</label>
+                    <div>
+                        <label for="employees-upload" class="btn btn-outline-success px-4">Choose file</label>
+                        <InputFile id="employees-upload" OnChange="UploadEmployee" accept=".json" style="display: none;" />
+                    </div>
+                </div>
+                <div class="col-md-12 mt-2">
+                    @if (!string.IsNullOrEmpty(importMessage))
+                    {
+                        <div class="alert alert-info mt-2 mb-0 py-2">@importMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="card shadow-sm border-0">
         <div class="card-body p-0"> <div class="table-responsive">
                 <table class="table table-striped table-hover mb-0">
@@ -145,5 +175,78 @@ else
     protected override async Task OnInitializedAsync()
     {
         employees = await Http.GetFromJsonAsync<List<Employee>>("https://localhost:7248/api/Employees");
+    }
+}
+
+@code{
+
+    private string importMessage = "";
+    private string selectedEmployeeFile = "";
+    private string selectedPositionFile = "";
+
+    private async Task UploadEmployee(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            selectedEmployeeFile = e.File.Name;
+
+            var file = e.File;
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 1024000); //maximalne 1 mb
+
+            var importedEmployees = await JsonSerializer.DeserializeAsync<List<EmployeeDTO>>(stream);
+
+            if (importedEmployees != null)
+            {
+                var response = await Http.PutAsJsonAsync("api/employees/import", importedEmployees);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    importMessage = await response.Content.ReadAsStringAsync();
+
+                    await OnInitializedAsync();
+                }
+                else
+                {
+                    importMessage = "Error while loading file!";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            importMessage = "Failed to load file " + ex.Message;
+        }
+    }
+
+    private async Task UploadPositions(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            selectedPositionFile = e.File.Name;
+            
+            var file = e.File;
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 1024000);
+
+            var importedPositions = await JsonSerializer.DeserializeAsync<List<Position>>(stream);
+
+            if (importedPositions != null)
+            {
+                var response = await Http.PostAsJsonAsync("apo/positions/api", importedPositions);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    importMessage = await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    importMessage = "Erroe while import file!";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            importMessage = "Error while loading file" + ex.Message;
+        }
     }
 }
