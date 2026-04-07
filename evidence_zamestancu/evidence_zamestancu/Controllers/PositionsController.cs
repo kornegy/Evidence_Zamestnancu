@@ -25,27 +25,26 @@ public class PositionsController : ControllerBase
     }
 
     [HttpPost("import")]
-    public async Task<ActionResult> ImportPositions([FromBody] List<Position> importedPositions)
+    public async Task<ActionResult> ImportPositions([FromBody] List<string> importedPositions)
     {
         if (importedPositions == null || !importedPositions.Any())
         {
             return BadRequest("File is empty or bad format!");
         }
 
-        foreach (var item in importedPositions)
+        foreach (var posName in importedPositions)
         {
             try
             {
                 bool exists = await _context.Positions.AnyAsync(e =>
-                    e.PositionID == item.PositionID &&
-                    e.PositionName == item.PositionName
+                    e.PositionName == posName
                 );
 
                 if (exists) continue;
 
                 var newPosition = new Position
                 {
-                    PositionID = item.PositionID
+                    PositionName = posName
                 };
                     
                 _context.Positions.Add(newPosition);

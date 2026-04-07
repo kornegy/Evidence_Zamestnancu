@@ -5,6 +5,7 @@ using evidence_zamestancu.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 
 namespace evidence_zamestancu.Controllers;
@@ -163,15 +164,17 @@ public class EmployeesController : ControllerBase
     {
         if(importedEmployee == null || !importedEmployee.Any())
             return BadRequest("File has wrong format or is empty!");
-
+        
         foreach (var item in importedEmployee)
         {
             try
             {
+                DateTime parsedData = DateTime.ParseExact(item.BirthDate, "yyyy/mm/dd", CultureInfo.InvariantCulture); //format ne zalezi na nastaveni pocitace
+                
                 bool exists = await _context.Employees.AnyAsync(e =>
                     e.Name == item.Name &&
                     e.Surname == item.Surname &&
-                    e.BirthDate == item.BirthDate);
+                    e.BirthDate == parsedData);
 
                 if (exists) continue;
 
@@ -194,7 +197,7 @@ public class EmployeesController : ControllerBase
                 {
                     Name = item.Name,
                     Surname = item.Surname,
-                    BirthDate = item.BirthDate,
+                    BirthDate = parsedData,
                     PositionID = positionId,
                     IPaddress = item.IpAddress,
                     IPCountryCode = countryCode

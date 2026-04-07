@@ -35,15 +35,6 @@ builder.Services.AddHttpClient<evidence_zamestancu.Services.IIpService, evidence
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<AppDbContext>();
-    var ipService = services.GetRequiredService<IIpService>();
-    
-    await DataSeeder.SeedAsync(context, ipService);
-}
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
